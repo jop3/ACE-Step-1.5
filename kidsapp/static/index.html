@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Song Maker!</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Baloo 2', system-ui, sans-serif;
+    background: linear-gradient(135deg, #ffe6f0, #e6f7ff, #fff9e6);
+    background-size: 400% 400%;
+    animation: bgshift 20s ease infinite;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  @keyframes bgshift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  h1 {
+    text-align: center;
+    font-size: clamp(28px, 6vw, 48px);
+    color: #ff5da2;
+    text-shadow: 3px 3px 0 #fff, -1px -1px 0 #fff;
+    margin: 8px 0 20px;
+  }
+  .section {
+    background: rgba(255,255,255,0.85);
+    border-radius: 24px;
+    padding: 16px 20px;
+    margin: 0 auto 20px;
+    max-width: 780px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.08);
+  }
+  .section h2 {
+    font-size: clamp(20px, 4vw, 26px);
+    color: #444;
+    margin: 0 0 4px;
+  }
+  .section .hint {
+    font-size: 14px;
+    color: #888;
+    margin: 0 0 12px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+  }
+  .pick {
+    border: 4px solid transparent;
+    border-radius: 18px;
+    padding: 12px 6px;
+    font-size: 16px;
+    font-weight: bold;
+    background: #f5f5f5;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.1s, background 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .pick .emoji { display: block; font-size: 28px; margin-bottom: 4px; }
+  .pick:hover { transform: scale(1.05); }
+  .pick:active { transform: scale(0.96); }
+  .pick.selected {
+    border-color: #ff5da2;
+    background: #ffe0ef;
+  }
+  .pick.multi.selected {
+    border-color: #4dc9ff;
+    background: #e0f6ff;
+  }
+  input[type="text"] {
+    width: 100%;
+    font-size: 20px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    border: 3px solid #ddd;
+    font-family: inherit;
+  }
+  #lyricsBox {
+    width: 100%;
+    min-height: 260px;
+    font-size: 16px;
+    line-height: 1.5;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 3px solid #ddd;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif;
+    resize: vertical;
+    box-sizing: border-box;
+  }
+  #regenBtn {
+    display: block;
+    margin: 16px auto 4px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #4dc9ff, #5da2ff);
+    border: none;
+    border-radius: 40px;
+    padding: 12px 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #3c7dc2;
+  }
+  #regenBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #3c7dc2; }
+  #regenBtn:disabled { opacity: 0.5; cursor: default; }
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .chip {
+    background: #fff0f7;
+    border: 2px solid #ffc2de;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #d1447a;
+    font-weight: bold;
+  }
+  .chip:hover { background: #ffe0ef; }
+
+  #makeBtn {
+    display: block;
+    margin: 20px auto;
+    font-size: clamp(24px, 5vw, 32px);
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #ff8a5c, #ff5da2);
+    border: none;
+    border-radius: 50px;
+    padding: 20px 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #c23c7d;
+    transition: transform 0.1s;
+  }
+  #makeBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 #c23c7d; }
+  #makeBtn:disabled { opacity: 0.5; cursor: default; }
+
+  #status {
+    text-align: center;
+    font-size: 22px;
+    color: #555;
+    margin: 10px 0;
+    min-height: 30px;
+  }
+  .spinner {
+    display: inline-block;
+    width: 28px; height: 28px;
+    border: 5px solid #ffd6e8;
+    border-top-color: #ff5da2;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #playerWrap {
+    max-width: 780px;
+    margin: 0 auto 40px;
+    text-align: center;
+    display: none;
+  }
+  #playerWrap audio { width: 100%; max-width: 500px; }
+  #playerWrap .yay { font-size: 60px; margin-bottom: 8px; }
+
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px; height: 30px;
+    background: #ff5da2;
+    color: white;
+    border-radius: 50%;
+    font-size: 16px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎵 Make Your Own Song! 🎵</h1>
+
+<div class="section">
+  <h2><span class="section-num">1</span>How does it feel?</h2>
+  <div class="grid" id="moodGrid" data-mode="single"></div>
+</div>
+
+<div class="section">
+  <h2><span class="section-num">2</span>Sounds like...</h2>
+  <p class="hint">Pick one or more vibes (optional)</p>
+  <div class="grid" id="styleGrid" data-mode="multi"></div>
+</div>
+
+<div class="section">
+  <h2><span class="section-num">2b</span>Sounds like a famous artist...</h2>
+  <p class="hint">Optional — inspired by their style, not a real recording</p>
+  <div class="grid" id="artistStyleGrid" data-mode="multi"></div>
+</div>
+
+<div class="section">
+  <h2><span class="section-num">3</span>Pick some instruments</h2>
+  <p class="hint">Choose as many as you like</p>
+  <div class="grid" id="instrGrid" data-mode="multi"></div>
+</div>
+
+<div class="section">
+  <h2><span class="section-num">4</span>How fast?</h2>
+  <div class="grid" id="beatGrid" data-mode="single"></div>
+</div>
+
+<div class="section">
+  <h2><span class="section-num">5</span>Who's singing?</h2>
+  <p class="hint">Voice type</p>
+  <div class="grid" id="genderGrid" data-mode="single"></div>
+  <p class="hint" style="margin-top:14px;">Singing style</p>
+  <div class="grid" id="vocalStyleGrid" data-mode="single"></div>
+  <p class="hint" style="margin-top:14px;">Language</p>
+  <div class="grid" id="langGrid" data-mode="single"></div>
+</div>
+
+<div class="section">
+  <h2><span class="section-num">6</span>What's the song about?</h2>
+  <p class="hint">Type a short idea, or tap one below</p>
+  <input type="text" id="topicInput" placeholder="a dragon who loves pizza...">
+  <div class="chip-row" id="ideaChips"></div>
+</div>
+
+<button id="makeBtn">🎶 Make My Song! 🎶</button>
+<div id="status"></div>
+
+<div id="lyricsWrap" class="section" style="display:none; max-width:780px;">
+  <h2>📝 Your Song's Words</h2>
+  <p class="hint">You can change any words before the song is made!</p>
+  <textarea id="lyricsBox"></textarea>
+  <button id="regenBtn">🔄 Make Song With These Words</button>
+</div>
+
+<div id="playerWrap">
+  <div class="yay">🎉</div>
+  <audio id="player" controls></audio>
+</div>
+
+<script>
+const MOODS = [
+  ["happy", "😄", "Happy"],
+  ["silly", "🤪", "Silly"],
+  ["epic", "🦸", "Epic"],
+  ["sleepy", "😴", "Sleepy"],
+  ["spooky", "👻", "Spooky"],
+  ["magic", "✨", "Magic"],
+];
+
+const STYLES = [
+  ["movie", "🎬", "Movie"],
+  ["videogame", "🕹️", "Video Game"],
+  ["circus", "🎪", "Circus"],
+  ["lullaby", "🌙", "Lullaby"],
+  ["pirate", "🏴‍☠️", "Pirate"],
+  ["disco", "🪩", "Disco"],
+  ["reggae", "🌴", "Reggae"],
+  ["march", "🥁", "Marching Band"],
+  ["country", "🤠", "Country"],
+  ["lofi", "☕", "Chill / Lo-fi"],
+  ["rock", "🎸", "Rock"],
+  ["folk", "🔥", "Campfire"],
+  ["synthpop80s", "📼", "80s Synth Pop"],
+  ["kpop", "💜", "K-Pop"],
+  ["broadway", "🎭", "Broadway"],
+  ["edm", "🎆", "EDM Party"],
+  ["reggaeton", "🔊", "Reggaeton"],
+  ["afrobeat", "🥁", "Afrobeats"],
+  ["grunge90s", "🎸", "90s Rock"],
+  ["trap", "🎵", "Trap Pop"],
+  ["gospel", "🙌", "Gospel Choir"],
+  ["jazz", "🎷", "Jazzy Swing"],
+];
+
+const ARTIST_STYLES = [
+  ["abba", "💃", "ABBA-ish"],
+  ["queen", "👑", "Queen-ish"],
+  ["mj", "🕺", "MJ-ish"],
+  ["beatles", "🐞", "Beatles-ish"],
+  ["boney-m", "🪩", "Boney M-ish"],
+  ["beachboys", "🏄", "Beach Boys-ish"],
+  ["daftpunk", "🤖", "Daft Punk-ish"],
+  ["stevie", "🎹", "Stevie-ish"],
+  ["taylor", "💫", "Taylor-ish"],
+  ["billie", "🖤", "Billie-ish"],
+  ["bts", "💜", "BTS-ish"],
+  ["dua", "🕺", "Dua-ish"],
+  ["bruno", "🎩", "Bruno-ish"],
+  ["edsheeran", "🎸", "Ed-ish"],
+  ["pharrell", "🎩", "Pharrell-ish"],
+  ["adele", "🎤", "Adele-ish"],
+  ["olivia", "😤", "Olivia-ish"],
+  ["ariana", "🎀", "Ariana-ish"],
+  ["sabrina", "🍒", "Sabrina-ish"],
+  ["benson", "🎹", "Benson-ish"],
+  ["blackpink", "🖤", "BLACKPINK-ish"],
+  ["harrystyles", "🌻", "Harry-ish"],
+  ["shawn", "🎸", "Shawn-ish"],
+  ["doja", "🐱", "Doja-ish"],
+  ["selena", "🌙", "Selena-ish"],
+];
+
+const INSTRUMENTS = [
+  ["guitar", "🎸", "Guitar"],
+  ["electric-guitar", "🎸", "Electric Guitar"],
+  ["piano", "🎹", "Piano"],
+  ["drums", "🥁", "Drums"],
+  ["synth", "🎛️", "Synth"],
+  ["violin", "🎻", "Strings"],
+  ["trumpet", "🎺", "Trumpet"],
+  ["saxophone", "🎷", "Sax"],
+  ["xylophone", "🎶", "Xylophone"],
+  ["flute", "🪈", "Flute"],
+  ["banjo", "🪕", "Banjo"],
+  ["ukulele", "🌺", "Ukulele"],
+  ["accordion", "🪗", "Accordion"],
+  ["bagpipes", "🎐", "Bagpipes"],
+  ["harp", "🎼", "Harp"],
+  ["cello", "🎻", "Cello"],
+  ["organ", "⛪", "Organ"],
+  ["bells", "🔔", "Bells"],
+  ["handclaps", "👏", "Claps"],
+  ["whistle", "😗", "Whistle"],
+];
+
+const BEATS = [
+  ["slow", "🐢", "Slow"],
+  ["medium", "🚶", "Medium"],
+  ["fast", "🐇", "Fast"],
+  ["super-fast", "🚀", "Super Fast"],
+];
+
+const GENDERS = [
+  ["girl", "👧", "Girl"],
+  ["boy", "👦", "Boy"],
+  ["woman", "👩", "Woman"],
+  ["man", "👨", "Man"],
+  ["choir", "🎤", "Choir"],
+];
+
+const VOCAL_STYLES = [
+  ["sweet", "🍬", "Sweet"],
+  ["powerful", "💪", "Powerful"],
+  ["whispery", "🤫", "Whispery"],
+  ["robotic", "🤖", "Robot"],
+  ["operatic", "🎭", "Opera"],
+  ["rap", "🎤", "Rap"],
+  ["growly", "🐉", "Growly"],
+];
+
+const LANGS = [
+  ["en", "🇬🇧", "English"],
+  ["sv", "🇸🇪", "Swedish"],
+  ["es", "🇪🇸", "Spanish"],
+  ["fr", "🇫🇷", "French"],
+  ["ja", "🇯🇵", "Japanese"],
+];
+
+const IDEA_CHIPS = [
+  "a dragon who loves pizza", "my best friend", "a robot learning to dance",
+  "a superhero cat", "the best day ever", "a magic treehouse",
+  "a race to the moon", "a silly monster", "a birthday party",
+  "a talking dinosaur", "a rainy day adventure", "a pirate's treasure",
+];
+
+let selectedMood = null;
+let selectedStyles = new Set();
+let selectedArtistStyles = new Set();
+let selectedInstruments = new Set();
+let selectedBeat = null;
+let selectedGender = "girl";
+let selectedVocalStyle = "sweet";
+let selectedLang = "en";
+
+function renderGrid(containerId, items, mode, onPick, preselect) {
+  const el = document.getElementById(containerId);
+  items.forEach(([id, emoji, label]) => {
+    const btn = document.createElement("div");
+    btn.className = "pick" + (mode === "multi" ? " multi" : "");
+    btn.innerHTML = `<span class="emoji">${emoji}</span>${label}`;
+    if (preselect === id) btn.classList.add("selected");
+    btn.onclick = () => onPick(id, btn);
+    el.appendChild(btn);
+  });
+}
+
+renderGrid("moodGrid", MOODS, "single", (id, btn) => {
+  document.querySelectorAll("#moodGrid .pick").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedMood = id;
+});
+
+renderGrid("styleGrid", STYLES, "multi", (id, btn) => {
+  if (selectedStyles.has(id)) { selectedStyles.delete(id); btn.classList.remove("selected"); }
+  else { selectedStyles.add(id); btn.classList.add("selected"); }
+});
+
+renderGrid("artistStyleGrid", ARTIST_STYLES, "multi", (id, btn) => {
+  if (selectedArtistStyles.has(id)) { selectedArtistStyles.delete(id); btn.classList.remove("selected"); }
+  else { selectedArtistStyles.add(id); btn.classList.add("selected"); }
+});
+
+renderGrid("instrGrid", INSTRUMENTS, "multi", (id, btn) => {
+  if (selectedInstruments.has(id)) { selectedInstruments.delete(id); btn.classList.remove("selected"); }
+  else { selectedInstruments.add(id); btn.classList.add("selected"); }
+});
+
+renderGrid("beatGrid", BEATS, "single", (id, btn) => {
+  document.querySelectorAll("#beatGrid .pick").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedBeat = id;
+});
+
+renderGrid("genderGrid", GENDERS, "single", (id, btn) => {
+  document.querySelectorAll("#genderGrid .pick").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedGender = id;
+}, "girl");
+
+renderGrid("vocalStyleGrid", VOCAL_STYLES, "single", (id, btn) => {
+  document.querySelectorAll("#vocalStyleGrid .pick").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedVocalStyle = id;
+}, "sweet");
+
+renderGrid("langGrid", LANGS, "single", (id, btn) => {
+  document.querySelectorAll("#langGrid .pick").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedLang = id;
+}, "en");
+
+const chipRow = document.getElementById("ideaChips");
+IDEA_CHIPS.forEach(text => {
+  const chip = document.createElement("div");
+  chip.className = "chip";
+  chip.textContent = text;
+  chip.onclick = () => { document.getElementById("topicInput").value = text; };
+  chipRow.appendChild(chip);
+});
+
+const statusEl = document.getElementById("status");
+const makeBtn = document.getElementById("makeBtn");
+const regenBtn = document.getElementById("regenBtn");
+const playerWrap = document.getElementById("playerWrap");
+const player = document.getElementById("player");
+const lyricsWrap = document.getElementById("lyricsWrap");
+const lyricsBox = document.getElementById("lyricsBox");
+
+const FUN_MESSAGES = [
+  "Mixing the magic notes...",
+  "Waking up the drums...",
+  "Teaching the robot to sing...",
+  "Sprinkling musical sparkles...",
+  "Tuning the instruments...",
+  "Almost ready to rock...",
+];
+
+const LYRICS_MESSAGES = [
+  "Thinking of the perfect words...",
+  "Writing your story...",
+  "Finding words that rhyme...",
+];
+
+// Bumped every time a new generation starts, so a stale poll loop from
+// an earlier (now-superseded) request stops updating the UI once the
+// kid has edited lyrics and started a newer one.
+let generationId = 0;
+
+function currentPicks() {
+  return {
+    mood: selectedMood,
+    instruments: Array.from(selectedInstruments),
+    beat: selectedBeat,
+    styles: Array.from(selectedStyles),
+    artist_styles: Array.from(selectedArtistStyles),
+    vocal_gender: selectedGender,
+    vocal_style: selectedVocalStyle,
+    language: selectedLang,
+    duration: 60,
+  };
+}
+
+async function generateSong(myGenId, lyricsText) {
+  let taskId;
+  try {
+    const resp = await fetch("/api/make_song", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...currentPicks(), lyrics: lyricsText }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    const data = await resp.json();
+    taskId = data.task_id;
+  } catch (e) {
+    if (myGenId === generationId) {
+      statusEl.textContent = "Oops, something went wrong. Ask a grown-up to check the music engine!";
+      makeBtn.disabled = false;
+      regenBtn.disabled = false;
+    }
+    return;
+  }
+
+  let msgIndex = 0;
+  const interval = setInterval(() => {
+    if (myGenId !== generationId) { clearInterval(interval); return; }
+    statusEl.innerHTML = '<span class="spinner"></span>' + FUN_MESSAGES[msgIndex % FUN_MESSAGES.length];
+    msgIndex++;
+  }, 2500);
+
+  const poll = async () => {
+    if (myGenId !== generationId) { clearInterval(interval); return; }
+    try {
+      const resp = await fetch(`/api/song_status/${taskId}`);
+      const data = await resp.json();
+      if (myGenId !== generationId) { clearInterval(interval); return; }
+      if (data.status === "done") {
+        clearInterval(interval);
+        statusEl.textContent = "Your song is ready!";
+        player.src = data.audio_url;
+        playerWrap.style.display = "block";
+        player.play().catch(() => {});
+        makeBtn.disabled = false;
+        regenBtn.disabled = false;
+        return;
+      } else if (data.status === "failed") {
+        clearInterval(interval);
+        statusEl.textContent = "Hmm, the song didn't work. Try again!";
+        makeBtn.disabled = false;
+        regenBtn.disabled = false;
+        return;
+      }
+      setTimeout(poll, 2000);
+    } catch (e) {
+      clearInterval(interval);
+      if (myGenId === generationId) {
+        statusEl.textContent = "Lost connection. Try again!";
+        makeBtn.disabled = false;
+        regenBtn.disabled = false;
+      }
+    }
+  };
+  poll();
+}
+
+async function makeSong() {
+  if (!selectedMood) { alert("Pick a mood first! 😊"); return; }
+  if (selectedInstruments.size === 0) { alert("Pick at least one instrument! 🎸"); return; }
+  if (!selectedBeat) { alert("Pick a speed! 🐇"); return; }
+
+  const myGenId = ++generationId;
+  makeBtn.disabled = true;
+  regenBtn.disabled = true;
+  playerWrap.style.display = "none";
+  lyricsWrap.style.display = "none";
+  statusEl.innerHTML = '<span class="spinner"></span>' + LYRICS_MESSAGES[0];
+
+  const idea = document.getElementById("topicInput").value;
+
+  let lyricsText;
+  try {
+    const resp = await fetch("/api/write_lyrics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idea: idea }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    const data = await resp.json();
+    lyricsText = data.lyrics;
+  } catch (e) {
+    if (myGenId === generationId) {
+      statusEl.textContent = "Oops, couldn't write the words. Ask a grown-up to check the music engine!";
+      makeBtn.disabled = false;
+    }
+    return;
+  }
+
+  if (myGenId !== generationId) return; // superseded while lyrics were being written
+
+  lyricsBox.value = lyricsText;
+  lyricsWrap.style.display = "block";
+  regenBtn.disabled = false;
+
+  generateSong(myGenId, lyricsText);
+}
+
+function regenerateWithEditedLyrics() {
+  const myGenId = ++generationId;
+  makeBtn.disabled = true;
+  regenBtn.disabled = true;
+  playerWrap.style.display = "none";
+  statusEl.innerHTML = '<span class="spinner"></span>Starting...';
+  generateSong(myGenId, lyricsBox.value);
+}
+
+makeBtn.onclick = makeSong;
+regenBtn.onclick = regenerateWithEditedLyrics;
+</script>
+
+</body>
+</html>
